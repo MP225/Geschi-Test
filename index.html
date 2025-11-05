@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Weimar & Zwischenkriegszeit – Karteikarten</title>
+  <meta name="theme-color" content="#111827" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Crect width='256' height='256' rx='48' fill='%23111827'/%3E%3Ctext x='50%25' y='54%25' dy='.35em' text-anchor='middle' font-size='130' font-family='sans-serif' fill='white'%3EW%3C/text%3E%3C/svg%3E"/>
+  <style>
+    :root { --bg:#f8fafc; --fg:#111827; --muted:#6b7280; --line:#e5e7eb; --pill:#e5e7eb; --brand:#111827; --danger:#ef4444; }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica,Arial,sans-serif}
+    .wrap{max-width:960px;margin:0 auto;padding:16px;}
+    header{display:grid;gap:6px;margin:8px 0 10px}
+    h1{font-size:22px;margin:0;font-weight:800}
+    .sub{font-size:12px;color:var(--muted)}
+    .controls{display:grid;gap:10px;margin:10px 0}
+    .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .deckbar{background:#fff;border:1px solid var(--line);border-radius:12px;padding:6px;overflow:auto;display:flex;gap:6px}
+    .opt{border:1px solid var(--line);border-radius:10px;padding:6px 10px;font-size:12px;white-space:nowrap;background:white}
+    .opt.active{background:var(--brand);color:#fff;border-color:var(--brand)}
+    input[type="text"]{flex:1;min-width:220px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+    .badge{font-size:12px;background:var(--pill);padding:4px 8px;border-radius:8px}
+    .prog{flex:1;height:8px;background:var(--line);border-radius:999px;position:relative}
+    .prog>i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--brand);border-radius:999px}
+    .card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px}
+    .meta{font-size:12px;color:var(--muted)}
+    .cap{margin-top:6px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+    .q{margin-top:4px;font-size:18px;font-weight:700}
+    .a{margin-top:6px;font-size:16px;line-height:1.4}
+    .footer{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
+    .btn{display:inline-flex;gap:6px;align-items:center;border-radius:10px;padding:10px 12px;font-weight:700;border:1px solid var(--fg);background:white;color:var(--fg)}
+    .btn.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+    .btn.danger{background:var(--danger);color:#fff;border-color:var(--danger)}
+    .btn.ghost{border-color:transparent}
+    .switch{display:flex;justify-content:center;gap:8px;margin:12px 0}
+    .switch .pill{padding:8px 12px;border-radius:999px;background:var(--pill);font-weight:700}
+    .switch .pill.active{background:var(--brand);color:#fff}
+    .empty{color:var(--muted)}
+    .grid{display:grid;gap:12px}
+    .sr{position:absolute;left:-9999px}
+    @media (min-width: 720px){ h1{font-size:26px} }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Weimar & Zwischenkriegszeit – Interaktive Karteikarten</h1>
+      <div class="sub">Lern- & Prüfungsmodus. Funktioniert offline (PWA) und speichert deinen Fortschritt lokal.</div>
+    </header>
+
+    <section class="controls">
+      <div class="row">
+        <span class="sr" id="lab-decks">Abschnitt</span>
+        <div class="deckbar" role="tablist" aria-labelledby="lab-decks" id="deckbar"></div>
+      </div>
+      <div class="row">
+        <input id="search" type="text" placeholder="Suche (Frage/Antwort) …" aria-label="Suche" />
+        <button id="shuffle" class="btn" type="button">Zufall aus</button>
+        <button id="reset" class="btn ghost" type="button">Fortschritt zurücksetzen</button>
+      </div>
+      <div class="row">
+        <span class="badge" id="count">Karten: 0</span>
+        <span class="badge" id="known">Gewusst: 0</span>
+        <div class="prog"><i id="prog"></i></div>
+        <span class="badge" id="pct">0%</span>
+      </div>
+    </section>
+
+    <section class="switch">
+      <button class="pill active" id="mode-learn">Lernmodus</button>
+      <button class="pill" id="mode-quiz">Prüfungsmodus</button>
+    </section>
+
+    <main class="grid" id="main"></main>
+
+    <footer class="sub">Tipp: Suche nach Stichworten wie „Rentenmark“ oder „Art. 48“, um gezielt zu lernen.</footer>
+  </div>
+
+  <script>
+  // ------------------ Daten ------------------
+  const DECKS = [
+    {id:"1", title:"1) Europa auf der Suche nach einer neuen Ordnung", cards:[
+      {q:"Datum und Bedeutung des Waffenstillstands von Compiègne?", a:"11. November 1918; Ende der Kampfhandlungen im Ersten Weltkrieg."},
+      {q:"Nenne zwei wirtschaftliche und zwei soziale Nachkriegsfolgen in Europa.", a:"Wirtschaft: Produktionszusammenbruch, Inflation/Entwertung. Sozial: Arbeitslosigkeit, Verunsicherung/Angst vor Abstieg."},
+      {q:"Welche Reiche zerfielen, und welche neuen Staaten entstanden (ein Beispiel)?", a:"Zerfall u. a. Österreich-Ungarn und Osmanisches Reich; neu z. B. Tschechoslowakei oder Jugoslawien."},
+      {q:"Welche drei politischen Wege gewannen an Zulauf (je ein Stichwort + Land/Person)?", a:"Demokratie (Deutschland/Österreich), Sozialismus/Kommunismus (Lenin/Russland), autoritäre/faschistische Diktatur (Mussolini/Italien)."},
+      {q:"Warum spricht man von der ‚verlorenen Generation‘?", a:"Traumatisierung/Entwurzelung vieler Heimkehrer; bleibende gesellschaftliche Prägung durch den Krieg."},
+    ]},
+    {id:"2", title:"2) Sozialismus – der Weg zu einer besseren Welt?", cards:[
+      {q:"Was war die ‚Soziale Frage‘ im 19. Jahrhundert?", a:"Elende Arbeits- und Lebensbedingungen der Industriearbeiterschaft und die Suche nach Abhilfe."},
+      {q:"Sicht von Marx/Engels auf Bourgeoisie und Proletariat?", a:"Bourgeoisie besitzt Produktionsmittel; Proletariat besitzt nur seine Arbeitskraft und wird ausgebeutet."},
+      {q:"Was meinten Marx/Engels mit ‚Klassenkampf‘?", a:"Historischer Grundkonflikt zwischen Klassen, der zur Umwälzung der Eigentumsverhältnisse führt."},
+      {q:"Ordne zu: Sozialismus ↔ … / Kommunismus ↔ …", a:"Sozialismus: Übergangsphase (Gemein-/Staatseigentum, ‚Diktatur des Proletariats‘). Kommunismus: klassenlose Gesellschaft."},
+      {q:"Warum setzten Marx/Engels auf revolutionäre Mittel?", a:"Weil grundlegende Änderungen friedlich kaum erreichbar schienen."},
+    ]},
+    {id:"6", title:"6) Deutschlands Weg in die Republik", cards:[
+      {q:"Warum kam es im Okt./Nov. 1918 zur Revolution?", a:"Kriegsniederlage, Matrosenaufstand, Generalstreik, Machtübernahme durch Arbeiter- und Soldatenräte."},
+      {q:"Zwei Unterschiede zwischen den Republikausrufen von Scheidemann und Liebknecht?", a:"Scheidemann: bürgerlich-parlamentarisch; Liebknecht: sozialistische Räterepublik."},
+      {q:"Drei akute Probleme der Übergangsregierung 1918/19?", a:"Heeresrückführung/Integration, Arbeitslosigkeit/Hunger, Staatsverwaltung sichern."},
+      {q:"Warum blieben alte Eliten im Amt – welches Risiko?", a:"Stabilisierung, aber Demokratieskeptiker blieben einflussreich."},
+      {q:"Erkläre den Begriff ‚Räte‘.", a:"Gewählte Vertretergremien der Arbeiter/Soldaten (Sowjet-Vorbild)."},
+    ]},
+    {id:"7", title:"7) Parlament oder Räte?", cards:[
+      {q:"Was wollte die SPD, was Spartakus/Teile der USPD?", a:"SPD: Nationalversammlung/Verfassung. Spartakus/USPD: Macht der Räte."},
+      {q:"Zentrales Merkmal der Räterepublik?", a:"Keine klassische Gewaltenteilung, bindendes Mandat von unten."},
+      {q:"Was war die ‚Berliner Blutwoche‘ (Jan. 1919)?", a:"Bewaffneter Aufstand, blutig niedergeschlagen."},
+      {q:"Rolle der Freikorps?", a:"Halfen der Regierung aus Antikommunismus, trotz Demokratieskepsis."},
+      {q:"Warum Mehrheit pro Parlament?", a:"Mehr Stabilität/Legitimation im parlamentarischen Weg."},
+    ]},
+    {id:"8", title:"8) Die junge Republik unter Druck", cards:[
+      {q:"Wer verbreitete die Dolchstoßlegende und was behauptete sie?", a:"Hindenburg/Ludendorff; Heer im Felde unbesiegt, von Zivilen/Revolution ‚erdolcht‘."},
+      {q:"Warum wurde Versailles als ‚Schandvertrag‘ empfunden?", a:"Kriegsschuldartikel und harte Bedingungen → nationale Demütigung."},
+      {q:"Zwei Folgen für die Innenpolitik?", a:"Radikalisierung; Hass auf Demokraten; Gewalt gegen Politiker."},
+      {q:"Zwei Opfer politischer Morde 1921/22.", a:"Matthias Erzberger (1921), Walter Rathenau (1922)."},
+      {q:"Kolbs Einordnung vs. Empörung damals?", a:"Belastend, aber teils weniger rigoros möglich; Deutschland blieb langfristig großmachtfähig."},
+    ]},
+    {id:"9", title:"9) Das Krisenjahr 1923", cards:[
+      {q:"Warum besetzten französische Truppen das Ruhrgebiet (Jan. 1923)?", a:"Reparationsrückstände – Sicherung/Überwachung von Kohlelieferungen."},
+      {q:"Kreislauf: passiver Widerstand ↔ Staatsausgaben ↔ Inflation.", a:"Streikfinanzierung → Gelddrucken → Geldmenge↑/Kaufkraft↓ → Preisexplosion."},
+      {q:"Tauschverhältnis Papiermark → Rentenmark (Nov. 1923)?", a:"1 Billion Papiermark = 1 Rentenmark (ab 15.11.1923)."},
+      {q:"Wer verlor besonders durch die Währungsreform?", a:"Sparer mit Geldvermögen."},
+      {q:"Datum und Ausgang des Hitler-Putsches?", a:"9. November 1923 in München; Putsch scheiterte, Hitler verhaftet."},
+    ]},
+    {id:"10", title:"10) ‚Goldene Zwanziger?‘", cards:[
+      {q:"Welche Gegensätze prägten die Großstadt der 1920er?", a:"Glanz vs. Armut, Kulturboom vs. soziale Not."},
+      {q:"Ein Merkmal des ‚neuen Frauentyps‘?", a:"Modernes, selbstbewusstes Rollenbild in Medien/Werbung."},
+      {q:"Reiz der ‚Neuen Sachlichkeit‘?", a:"Nüchterne, realistische Darstellung der Wirklichkeit."},
+      {q:"Warum ist ‚golden‘ nur bedingt treffend?", a:"Gleichzeitig soziale Not/Spaltung trotz Kulturaufschwung."},
+      {q:"Pro & Contra ‚Goldene Zwanziger‘?", a:"Pro: Kultur/Medien/Optimismus. Contra: Arbeitslosigkeit/Wohnungsnot/Extremismus."},
+    ]},
+    {id:"11", title:"11) Die Wirtschaft in der Krise", cards:[
+      {q:"Börsenkrach – warum betrifft es Deutschland?", a:"US-Kreditrückzug trifft kreditabhängiges Deutschland; internationale Ansteckung."},
+      {q:"Rolle der US‑Kredite in den 1920ern?", a:"Wiederaufbau kreditfinanziert; in der US‑Krise Abzug."},
+      {q:"‚Teufelskreis‘ von Krise, Nachfrage und Staatseinnahmen?", a:"Auftragsmangel → Entlassungen → Kaufkraft↓ → Steuern↓ → Staatsaufträge↓ → weitere Entlassungen."},
+      {q:"Zwei Folgen für Banken/Betriebe?", a:"Banken illiquide; Betriebe drosseln/gehen pleite."},
+      {q:"Politische Folge für manche Arbeitslose?", a:"Radikalisierung/Zulauf zur NSDAP."},
+    ]},
+    {id:"12", title:"12) Arbeitslosigkeit und Hunger", cards:[
+      {q:"Warum schützte die Arbeitslosenversicherung kaum vor Absturz?", a:"Geringe Sätze, befristet; danach Krisenfürsorge/oft gar nichts."},
+      {q:"Kette bei Arbeitslosigkeit (6 Stationen).", a:"Entlassung → Arbeitsamt → Stempelkarte → Erwerbslosenfürsorge → Krisenfürsorge → ohne Unterstützung."},
+      {q:"Welche Alltagsnöte 1932?", a:"Hunger, fehlende Schuhe, Frühspeisung für Kinder."},
+      {q:"Bedeutung ‚blauer Brief‘ und ‚Stempelkarte‘?", a:"Kündigungsschreiben; Nachweis fürs regelmäßige Stempeln."},
+      {q:"Zwei politische Folgen?", a:"Radikalisierung/Protestwahlen; Vertrauensverlust in die Demokratie."},
+    ]},
+    {id:"13", title:"13) Die Demokratie wird zerstört", cards:[
+      {q:"Warum ab 1930 Präsidialregierungen?", a:"Keine stabilen Mehrheiten; Regieren über den Reichspräsidenten."},
+      {q:"Art. 48 & Art. 25 (Weimar)?", a:"Notverordnung (48); bei Widerstand Auflösung (25) + Neuwahl."},
+      {q:"Bilanz Gesetze vs. Notverordnungen 1930–1932?", a:"Parlament entmachtet, Exekutive dominiert."},
+      {q:"Wirkung von Straßenschlachten?", a:"Wunsch nach ‚starkem Mann‘/Ordnung; Klima der Angst."},
+      {q:"Hitler 30.1.1933 zum Kanzler – Fehleinschätzung?", a:"Man glaubte, ihn ‚zähmen‘ zu können – fatal."},
+    ]},
+    {id:"14", title:"14) Politische Plakate analysieren (Methode)", cards:[
+      {q:"Drei Arbeitsschritte der Plakatanalyse.", a:"Beschreiben → Untersuchen → Deuten."},
+      {q:"Wie wirken Farben/Schrift?", a:"Groß & kontrastreich = Dringlichkeit; warm/hell = Hoffnung usw."},
+      {q:"Typische Themen von Wahlplakaten?", a:"Arbeitslosigkeit, Armut, Ordnung/Sicherheit, ‚Systemkritik‘."},
+      {q:"Zwei Leitfragen fürs Deuten?", a:"Bezug zur Lage 1932? Ziel der Partei & Aussage über ihre Politik?"},
+      {q:"Warum sind Plakate wertvolle Quellen?", a:"Spiegeln Standpunkte, Feindbilder, Lösungsangebote und Stimmungen."},
+    ]},
+    {id:"15", title:"15) Wer wählte die NSDAP?", cards:[
+      {q:"Strategiewechsel nach 1923?", a:"Vom Putsch zur legalen Aushöhlung via Parlament & Straßenmacht."},
+      {q:"Warum erfolgreich als ‚Partei des Protestes‘?", a:"Einfache Schuldzuweisungen + Angebote an viele Milieus."},
+      {q:"Versprechen an a) Arbeitslose b) Beamte/Angestellte c) Kleinbürger/Gewerbe d) Oberschicht e) Militär", a:"a) Arbeit/Brot; b) Schutz vor Abstieg; c) Kampf gegen ‚jüdische Konkurrenz‘; d) Antikommunismus/Ordnung; e) starke Armee."},
+      {q:"Arbeitslosigkeit ↔ NSDAP-Stimmen?", a:"Mit zunehmender Arbeitslosigkeit mehr Zulauf (Protest)."},
+      {q:"Welche Gruppe besonders angezogen – warum?", a:"Viele Jüngere – Dynamik, Führerkult, Mobilisierung."},
+    ]},
+  ];
+
+  // -------------- State & Helpers --------------
+  const $$ = sel => document.querySelector(sel);
+  const wrap = id => document.createElement(id);
+  const STORAGE_PROGRESS = 'weimar_pwa_progress_v1';
+  const STORAGE_SETTINGS = 'weimar_pwa_settings_v1';
+
+  let state = { activeDeckId: DECKS[0].id, showAnswer: false, shuffle: false, idx: 0, mode: 'learn', search: '' };
+  let knownMap = {};
+
+  try {
+    const p = localStorage.getItem(STORAGE_PROGRESS); if (p) knownMap = JSON.parse(p);
+    const s = localStorage.getItem(STORAGE_SETTINGS); if (s) { const o = JSON.parse(s); Object.assign(state, o); }
+  } catch {}
+
+  function save() {
+    localStorage.setItem(STORAGE_PROGRESS, JSON.stringify(knownMap));
+    localStorage.setItem(STORAGE_SETTINGS, JSON.stringify({ activeDeckId: state.activeDeckId, shuffle: state.shuffle }));
+  }
+
+  function shuffleArray(a){ a=[...a]; for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; }
+
+  function getDeck(){ return DECKS.find(d=>d.id===state.activeDeckId); }
+  function filteredCards(){
+    const d = getDeck(); const base = d.cards; const txt = state.search.trim().toLowerCase();
+    const f = txt? base.filter(c => (c.q+" "+c.a).toLowerCase().includes(txt)) : base;
+    return state.shuffle? shuffleArray(f) : f;
+  }
+
+  // -------------- UI Rendering --------------
+  const deckbar = $$('#deckbar');
+  const main = $$('#main');
+
+  function renderDeckbar(){
+    deckbar.innerHTML = '';
+    for(const d of DECKS){
+      const b = document.createElement('button');
+      b.className = 'opt'+(state.activeDeckId===d.id? ' active':'');
+      b.textContent = d.title; b.type='button';
+      b.onclick = ()=>{ state.activeDeckId = d.id; state.idx=0; state.showAnswer=false; render(); };
+      deckbar.appendChild(b);
+    }
+  }
+
+  function renderStats(){
+    const cards = filteredCards();
+    const known = (knownMap[state.activeDeckId]||[]);
+    const pct = cards.length? Math.round(known.length/cards.length*100):0;
+    $$('#count').textContent = `Karten: ${cards.length}`;
+    $$('#known').textContent = `Gewusst: ${known.length}`;
+    $$('#pct').textContent = pct+"%";
+    $$('#prog').style.width = pct+"%";
+    $$('#shuffle').textContent = state.shuffle? 'Zufall an':'Zufall aus';
+    $$('#search').value = state.search;
+  }
+
+  function renderLearn(){
+    const cards = filteredCards();
+    const c = cards[state.idx];
+    const total = cards.length;
+    main.innerHTML = '';
+    const box = document.createElement('div');
+    box.className='grid';
+    const meta = document.createElement('div'); meta.className='meta'; meta.textContent = total? `Karte ${state.idx+1} / ${total}`:'—';
+    const card = document.createElement('div'); card.className='card';
+    const capQ = document.createElement('div'); capQ.className='cap'; capQ.textContent='Frage';
+    const q = document.createElement('div'); q.className='q'; q.textContent=c? c.q:'—';
+    card.append(capQ,q);
+    if(state.showAnswer && c){
+      const capA = document.createElement('div'); capA.className='cap'; capA.textContent='Antwort';
+      const a = document.createElement('div'); a.className='a'; a.textContent=c.a;
+      card.append(capA,a);
+    }
+    const footer = document.createElement('div'); footer.className='footer';
+    const left = document.createElement('div'); left.className='row';
+    const bPrev = button('Zurück', '', ()=>{ state.idx=Math.max(0,state.idx-1); state.showAnswer=false; render(); }); bPrev.disabled=state.idx===0;
+    const bNext = button('Weiter', '', ()=>{ state.idx=Math.min(total-1,state.idx+1); state.showAnswer=false; render(); }); bNext.disabled=state.idx>=total-1;
+    left.append(bPrev,bNext);
+
+    const mid = document.createElement('div'); mid.className='row';
+    const bToggle = button(state.showAnswer? 'Antwort ausblenden':'Antwort anzeigen','',()=>{ state.showAnswer=!state.showAnswer; render(); }); mid.append(bToggle);
+
+    const right = document.createElement('div'); right.className='row';
+    const bNo = button('Nicht gewusst','danger',()=>mark(false));
+    const bYes = button('Gewusst','primary',()=>mark(true));
+    right.append(bNo,bYes);
+
+    footer.append(left,mid,right);
+    box.append(meta,card,footer);
+    main.append(box);
+  }
+
+  function renderQuiz(){
+    if(!renderQuiz.order || renderQuiz.deckId!==state.activeDeckId){
+      renderQuiz.deckId = state.activeDeckId;
+      renderQuiz.order = shuffleArray(getDeck().cards.map((_,i)=>i));
+      renderQuiz.pos=0; renderQuiz.reveal=false; renderQuiz.correct=0; renderQuiz.answers={};
+    }
+    const d = getDeck();
+    const idx = renderQuiz.order[renderQuiz.pos];
+    const c = d.cards[idx];
+    const done = renderQuiz.pos>=renderQuiz.order.length-1 && renderQuiz.reveal;
+
+    main.innerHTML='';
+    const box=document.createElement('div'); box.className='grid';
+    if(!done){
+      const meta = document.createElement('div'); meta.className='meta'; meta.textContent = `Frage ${renderQuiz.pos+1} / ${d.cards.length}`;
+      const card = document.createElement('div'); card.className='card';
+      const capQ = document.createElement('div'); capQ.className='cap'; capQ.textContent='Frage';
+      const q = document.createElement('div'); q.className='q'; q.textContent=c.q;
+      card.append(capQ,q);
+      if(renderQuiz.reveal){ const capA=document.createElement('div'); capA.className='cap'; capA.textContent='Antwort'; const a=document.createElement('div'); a.className='a'; a.textContent=c.a; card.append(capA,a); }
+      const controls=document.createElement('div'); controls.className='footer';
+      if(!renderQuiz.reveal){
+        const ok = button('Konnte ich beantworten','primary',()=>{ renderQuiz.answers[idx]=true; renderQuiz.correct++; renderQuiz.reveal=true; render(); });
+        const no = button('Konnte ich nicht','',()=>{ renderQuiz.answers[idx]=false; renderQuiz.reveal=true; render(); });
+        const back = button('Zurück','ghost',()=>{ state.mode='learn'; render(); });
+        controls.append(ok,no,back);
+      } else {
+        const next = button('Weiter','primary',()=>{ if(renderQuiz.pos<renderQuiz.order.length-1){ renderQuiz.pos++; renderQuiz.reveal=false; render(); } });
+        controls.append(next);
+      }
+      box.append(meta,card,controls);
+    } else {
+      const score = Math.round((renderQuiz.correct/d.cards.length)*100);
+      const title=document.createElement('div'); title.className='q'; title.textContent=`Fertig! Score: ${score}%`;
+      const list=document.createElement('div'); list.className='card';
+      list.innerHTML='<div class="cap">Ergebnisübersicht</div>';
+      for(const i of renderQuiz.order){
+        const row=document.createElement('div'); row.style.display='flex'; row.style.gap='8px'; row.style.marginBottom='8px';
+        const icon=document.createElement('span'); icon.textContent = renderQuiz.answers[i]? '✅' : '❌';
+        const text=document.createElement('div');
+        const q=document.createElement('div'); q.style.fontWeight='600'; q.textContent=d.cards[i].q;
+        text.append(q);
+        if(!renderQuiz.answers[i]){ const a=document.createElement('div'); a.style.color='#4b5563'; a.textContent='Lösung: '+d.cards[i].a; text.append(a); }
+        row.append(icon,text); list.append(row);
+      }
+      const back=button('Zurück','primary',()=>{ state.mode='learn'; render(); });
+      box.append(title,list,back);
+    }
+    main.append(box);
+  }
+
+  function button(txt,variant,on){ const b=document.createElement('button'); b.className='btn '+(variant||''); b.textContent=txt; b.type='button'; b.onclick=on; return b; }
+
+  function mark(know){
+    const d=getDeck(); const cards=filteredCards(); const c=cards[state.idx]; if(!c) return;
+    const originalIndex = d.cards.indexOf(c);
+    const set = new Set(knownMap[state.activeDeckId]||[]);
+    if(know) set.add(originalIndex); else set.delete(originalIndex);
+    knownMap[state.activeDeckId]=Array.from(set).sort((a,b)=>a-b);
+    save();
+    if(state.idx < cards.length-1) state.idx++;
+    state.showAnswer=false; render();
+  }
+
+  // -------------- Wire up controls --------------
+  $$('#search').addEventListener('input', e=>{ state.search=e.target.value; state.idx=0; state.showAnswer=false; renderStats(); renderMain(); });
+  $$('#shuffle').addEventListener('click', ()=>{ state.shuffle=!state.shuffle; state.idx=0; state.showAnswer=false; save(); render(); });
+  $$('#reset').addEventListener('click', ()=>{ knownMap[state.activeDeckId]=[]; save(); render(); });
+  $$('#mode-learn').addEventListener('click', ()=>{ state.mode='learn'; renderMode(); renderMain(); });
+  $$('#mode-quiz').addEventListener('click', ()=>{ state.mode='quiz'; renderMode(); renderMain(); });
+
+  function renderMode(){
+    $$('#mode-learn').classList.toggle('active', state.mode==='learn');
+    $$('#mode-quiz').classList.toggle('active', state.mode==='quiz');
+  }
+
+  function renderMain(){ state.mode==='learn'? renderLearn(): renderQuiz(); }
+
+  function render(){ renderDeckbar(); renderStats(); renderMode(); renderMain(); }
+
+  // ------------------ Selbsttests (Runtime Tests) ------------------
+  function runSelfTests(){
+    try{
+      console.assert(typeof $$ === 'function', 'Test: $$ ist definiert');
+      console.assert($$('#deckbar'), 'Test: #deckbar existiert');
+      console.assert($$('#main'), 'Test: #main existiert');
+      // Smoke-Test: render() löst keinen Fehler aus
+      renderDeckbar(); renderStats();
+      console.log('[PWA self-test] OK');
+    } catch(e){
+      console.error('[PWA self-test] FEHLER', e);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => { render(); runSelfTests(); });
+
+  // -------------- PWA: Manifest & Service Worker --------------
+  // manifest.json als Blob erzeugen
+  const manifest = {
+    name: "Weimar & Zwischenkriegszeit – Karteikarten",
+    short_name: "Weimar Cards",
+    start_url: ".",
+    display: "standalone",
+    background_color: "#f8fafc",
+    theme_color: "#111827",
+    icons: [
+      { src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAAQCAYAAABh4i8QAAAACXBIWXMAAAsSAAALEgHS3X78AAAAPklEQVRoge3OwQkAIBAF0cP//0tqgqgk2oV3gW+eQwQm8Qm2y1Q0JQhAAAgKk7n0I2x3p7G2m9w9Q4cLx8k0m7Gm8g2l9m6w6k8o7P5sA9bYA3y8p1DgAAAABJRU5ErkJggg==", sizes: "64x64", type: "image/png" }
+    ]
+  };
+  const manifestBlob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
+  const manifestURL = URL.createObjectURL(manifestBlob);
+  const link = document.createElement('link'); link.rel='manifest'; link.href=manifestURL; document.head.appendChild(link);
+
+  // Service Worker: simpler Cache-First Ansatz
+  const swCode = `
+    const CACHE = 'weimar-cache-v1';
+    self.addEventListener('install', e => {
+      e.waitUntil((async () => {
+        const cache = await caches.open(CACHE);
+        await cache.addAll(['./']);
+        self.skipWaiting();
+      })());
+    });
+    self.addEventListener('activate', e => { e.waitUntil(self.clients.claim()); });
+    self.addEventListener('fetch', e => {
+      const url = new URL(e.request.url);
+      if (url.origin === location.origin) {
+        e.respondWith(
+          caches.match(e.request).then(r => r || fetch(e.request).then(res => {
+            const clone = res.clone();
+            caches.open(CACHE).then(c => c.put(e.request, clone));
+            return res;
+          }))
+        );
+      }
+    });
+  `;
+  if('serviceWorker' in navigator){
+    const swURL = URL.createObjectURL(new Blob([swCode], {type:'text/javascript'}));
+    navigator.serviceWorker.register(swURL).catch(()=>{});
+  }
+  </script>
+</body>
+</html>
